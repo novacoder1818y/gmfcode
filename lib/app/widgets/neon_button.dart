@@ -43,15 +43,15 @@ class _NeonButtonState extends State<NeonButton> {
               ? [
             BoxShadow(
               color: widget.gradientColors.first.withOpacity(0.7),
-              blurRadius: 15,
+              blurRadius: 5,
               spreadRadius: 1,
-              offset: const Offset(-4, -4),
+              //offset: const Offset(-4, -4),
             ),
             BoxShadow(
               color: widget.gradientColors.last.withOpacity(0.7),
-              blurRadius: 15,
+              blurRadius: 5,
               spreadRadius: 1,
-              offset: const Offset(4, 4),
+              //offset: const Offset(4, 4),
             ),
           ]
               : [],
