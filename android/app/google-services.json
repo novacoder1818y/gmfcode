@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "792020563359",
+    "project_id": "gamified-e91f2",
+    "storage_bucket": "gamified-e91f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792020563359:android:4ef63914f3d8af3f1339aa",
+        "android_client_info": {
+          "package_name": "com.example.gmfcode"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAn3d37WrlSwUkClM9YAHFS43DWUhCWzLA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
