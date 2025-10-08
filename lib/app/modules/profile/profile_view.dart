@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
+
+// 1. ADD THIS IMPORT for the AuthController
+import '../auth/auth_controller.dart';
+
 import '../../routes/app_pages.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/animated_counter.dart';
@@ -17,10 +21,7 @@ class ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<ProfileView> with TickerProviderStateMixin {
   late final AnimationController _streakController;
 
-  // Check if we are viewing our own profile or someone else's
   final bool isMyProfile = Get.arguments == null;
-
-  // Use dummy data or passed arguments
   late final String userName;
   late final String heroTag;
 
@@ -48,9 +49,13 @@ class _ProfileViewState extends State<ProfileView> with TickerProviderStateMixin
         actions: [
           if (isMyProfile)
             IconButton(
-              icon: Icon(Icons.logout),
-              onPressed: () => Get.offAllNamed(Routes.AUTH),
+              icon: const Icon(Icons.logout),
               tooltip: 'Log Out',
+              // 2. UPDATE THE LOGOUT LOGIC HERE
+              onPressed: () {
+                // Find the global AuthController and call the signOut method
+                AuthController().signOut();
+              },
             ),
         ],
       ),
@@ -130,7 +135,7 @@ class _ProfileViewState extends State<ProfileView> with TickerProviderStateMixin
       children: [
         AnimatedCounter(
           end: value,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -138,7 +143,7 @@ class _ProfileViewState extends State<ProfileView> with TickerProviderStateMixin
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: Colors.white70)),
+        Text(label, style: const TextStyle(color: Colors.white70)),
       ],
     );
   }
@@ -167,7 +172,6 @@ class _ProfileViewState extends State<ProfileView> with TickerProviderStateMixin
   }
 
   Widget _buildBadgesSection() {
-    // ... (same as before)
     final badges = [
       {'icon': Icons.star, 'label': 'First Kill'},
       {'icon': Icons.local_fire_department, 'label': 'Hot Streak'},
@@ -202,7 +206,6 @@ class _ProfileViewState extends State<ProfileView> with TickerProviderStateMixin
   }
 }
 
-/// A custom widget for displaying a single badge.
 class _Badge extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -224,4 +227,3 @@ class _Badge extends StatelessWidget {
     );
   }
 }
-
