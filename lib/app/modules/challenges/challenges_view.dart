@@ -1,54 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
+import 'package:get/get.dart';
+import '../../routes/app_pages.dart';
 import '../../widgets/challenge_card.dart';
+import 'challenges_controller.dart';
 
 class ChallengesView extends StatelessWidget {
   const ChallengesView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final challenges = [
-      const ChallengeCard(
-        title: 'Variable Declarations',
-        category: 'Coding',
-        progress: 1.0,
-        tags: ['Easy', 'Variables'],
-      ),
-      const ChallengeCard(
-        title: 'Loop Masters',
-        category: 'Puzzle',
-        progress: 0.6,
-        tags: ['Medium', 'Loops'],
-      ),
-      const ChallengeCard(
-        title: 'Algorithm Basics',
-        category: 'MCQ',
-        progress: 0.0,
-        tags: ['Easy', 'Algorithms'],
-      ),
-      const ChallengeCard(
-        title: 'Recursive Thinking',
-        category: 'Coding',
-        progress: 0.2,
-        tags: ['Hard', 'Recursion'],
-      ),
-    ];
+    // Put the controller here to initialize it for this page and its children
+    final ChallengesController controller = Get.put(ChallengesController());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Coding Challenges'),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: challenges.length,
-        itemBuilder: (context, index) {
-          return challenges[index]
-              .animate()
-              .fadeIn(delay: (100 * index).ms)
-              .slideX(begin: -0.2, end: 0);
-        },
-      ),
+      appBar: AppBar(title: const Text('Coding Challenges')),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16.0),
+          itemCount: controller.challenges.length,
+          itemBuilder: (context, index) {
+            final challenge = controller.challenges[index];
+            final hasCompleted = controller.hasCompleted(challenge.id);
+
+            return ChallengeCard(
+              title: challenge['title'],
+              category: challenge['category'],
+              tags: [challenge['difficulty']],
+              progress: hasCompleted ? 1.0 : 0.0,
+              // THIS IS THE FIX (Part 2)
+              onTap: () => Get.toNamed(Routes.CHALLENGE_DETAIL, arguments: challenge),
+            );
+          },
+        );
+      }),
     );
   }
 }

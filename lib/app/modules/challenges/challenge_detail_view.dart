@@ -1,110 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/neon_button.dart';
+import 'challenges_controller.dart';
 
-class ChallengeDetailView extends StatelessWidget {
+class ChallengeDetailView extends StatefulWidget {
   const ChallengeDetailView({super.key});
+  @override
+  State<ChallengeDetailView> createState() => _ChallengeDetailViewState();
+}
+
+class _ChallengeDetailViewState extends State<ChallengeDetailView> {
+  final QueryDocumentSnapshot challenge = Get.arguments;
+  final ChallengesController challengesController = Get.find();
+  String? _selectedOption;
+  bool _isAnswered = false;
+
+  void _submitAnswer() {
+    setState(() => _isAnswered = true);
+    final isCorrect = _selectedOption == challenge['correctAnswer'];
+
+    if (isCorrect) {
+      _updateUserXP();
+      Get.snackbar('Correct!', '+${challenge['points']} XP Earned!', backgroundColor: Colors.green);
+    } else {
+      Get.snackbar('Incorrect', 'Try again next time!', backgroundColor: Colors.red);
+    }
+  }
+
+  Future<void> _updateUserXP() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
+
+    // Use a transaction to safely update XP and mark challenge as complete
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final userSnapshot = await transaction.get(userRef);
+      if (!userSnapshot.exists) return;
+
+      final currentXp = userSnapshot.data()?['xp'] ?? 0;
+      final newXp = currentXp + (challenge['points'] as int);
+
+      // Update XP in user document
+      transaction.update(userRef, {'xp': newXp});
+
+      // Mark challenge as completed in subcollection
+      final completedRef = userRef.collection('completedChallenges').doc(challenge.id);
+      transaction.set(completedRef, {
+        'completedAt': Timestamp.now(),
+        'pointsEarned': challenge['points'],
+      });
+    });
+
+    // Refresh the local state
+    challengesController.completedChallenges.add(challenge.id);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // In a real app, you'd pass a Challenge object
-    final String category = Get.arguments['category'] ?? 'Coding';
-    final String title = Get.arguments['title'] ?? 'Challenge';
+    final options = List<String>.from(challenge['options']);
+    final bool hasCompleted = challengesController.hasCompleted(challenge.id);
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      appBar: AppBar(title: Text(challenge['title'])),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Category: $category', style: TextStyle(color: AppTheme.accentColor)),
+            Text(challenge['description'], style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 20),
-            _buildChallengeContent(category),
-            const SizedBox(height: 40),
-            NeonButton(
-              text: 'Submit',
-              onTap: () => Get.back(),
-              gradientColors: [AppTheme.accentColor, AppTheme.tertiaryColor],
-            ),
+            Text('Points: ${challenge['points']} | Difficulty: ${challenge['difficulty']}',
+                style: const TextStyle(color: AppTheme.accentColor)),
+            const Divider(height: 30),
+            ...options.map((option) {
+              Color? tileColor;
+              if (_isAnswered) {
+                if (option == challenge['correctAnswer']) {
+                  tileColor = Colors.green.withOpacity(0.3);
+                } else if (option == _selectedOption) {
+                  tileColor = Colors.red.withOpacity(0.3);
+                }
+              }
+
+              return Card(
+                color: tileColor,
+                child: RadioListTile<String>(
+                  title: Text(option),
+                  value: option,
+                  groupValue: _selectedOption,
+                  onChanged: _isAnswered || hasCompleted
+                      ? null // Disable if already answered or completed
+                      : (value) => setState(() => _selectedOption = value),
+                ),
+              );
+            }),
+            const Spacer(),
+            if (hasCompleted)
+              const Center(child: Text('You have already completed this challenge!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))),
+            if (!hasCompleted)
+              Center(
+                child: ElevatedButton(
+                  onPressed: _selectedOption == null || _isAnswered ? null : _submitAnswer,
+                  child: const Text('Submit Answer'),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildChallengeContent(String category) {
-    switch (category) {
-      case 'MCQ':
-        return _buildMcqContent();
-      case 'Puzzle':
-        return _buildPuzzleContent();
-      case 'Coding':
-      default:
-        return _buildCodingContent();
-    }
-  }
-
-  Widget _buildMcqContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "What is the time complexity of a binary search algorithm?",
-          style: TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 20),
-        RadioListTile(title: Text("O(n)"), value: 1, groupValue: 0, onChanged: (v){}),
-        RadioListTile(title: Text("O(log n)"), value: 2, groupValue: 0, onChanged: (v){}),
-        RadioListTile(title: Text("O(n^2)"), value: 3, groupValue: 0, onChanged: (v){}),
-      ],
-    );
-  }
-
-  Widget _buildPuzzleContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Drag and drop the code blocks to form a correct 'for' loop that prints numbers from 1 to 5.",
-          style: TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          height: 200,
-          decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.tertiaryColor),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Center(child: Text("[Drop Zone for Puzzle Pieces]")),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCodingContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Write a function in Python that takes a string as input and returns its reverse.",
-          style: TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          maxLines: 10,
-          style: GoogleFonts.sourceCodePro(),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.black.withOpacity(0.3),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            hintText: 'def reverse_string(s):\n  # Your code here',
-          ),
-        ),
-      ],
-    );
-  }
 }
-
