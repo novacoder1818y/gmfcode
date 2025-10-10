@@ -9,6 +9,7 @@ import 'package:gmfcode/firebase_options.dart';
 import 'app/modules/auth/auth_controller.dart';
 import 'app/modules/auth/auth_view.dart';
 import 'app/modules/dashboard/dashboard_view.dart';
+import 'app/modules/notifications/notification_controller.dart';
 import 'app/routes/app_pages.dart';
 import 'app/theme/app_theme.dart';
 
@@ -17,6 +18,7 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Put the AuthController into memory permanently so it can be accessed anywhere.
   Get.put(AuthController(), permanent: true);
+  Get.put(NotificationController());
   runApp(const MyApp());
 }
 

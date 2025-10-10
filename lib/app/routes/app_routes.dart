@@ -6,6 +6,8 @@ abstract class Routes {
   static const CHALLENGES = '/challenges';
   static const CHALLENGE_DETAIL = '/challenge-detail'; // New
   static const EVENT = '/event';
+  static const EVENT_ARENA = '/event/arena';
+  static const EVENT_LEADERBOARD = '/event/leaderboard';
   static const LEADERBOARD = '/leaderboard';
   static const PROFILE = '/profile';
   static const NOTIFICATIONS = '/notifications'; // New

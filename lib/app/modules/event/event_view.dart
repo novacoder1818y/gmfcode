@@ -1,166 +1,156 @@
-// lib/app/modules/event/event_view.dart
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:percent_indicator/circular_percent_indicator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import '../../routes/app_pages.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/leaderboard_card.dart';
 import '../../widgets/neon_button.dart';
+import 'event_controller.dart';
 
-// Enum to manage the state of the event screen
-enum EventState { countdown, inProgress, finished }
-
-class EventView extends StatefulWidget {
+class EventView extends GetView<EventsController> {
   const EventView({super.key});
 
   @override
-  State<EventView> createState() => _EventViewState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Live Events')),
+      body: Obx(() {
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (controller.eventsList.isEmpty) {
+          return const Center(child: Text('No events scheduled right now.'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: controller.eventsList.length,
+          itemBuilder: (context, index) {
+            final event = controller.eventsList[index];
+            return EventCard(event: event);
+          },
+        );
+      }),
+    );
+  }
 }
 
-class _EventViewState extends State<EventView> {
-  final eventState = EventState.countdown.obs;
-  late Timer _timer;
-  Duration _countdownDuration = const Duration(minutes: 5, seconds: 30);
+class EventCard extends StatefulWidget {
+  final QueryDocumentSnapshot event;
+  const EventCard({super.key, required this.event});
+  @override
+  State<EventCard> createState() => _EventCardState();
+}
+
+class _EventCardState extends State<EventCard> {
+  Timer? _timer;
+  Duration _timeUntilStart = Duration.zero;
+  bool _hasParticipated = false;
+  bool _isCheckingParticipation = true;
 
   @override
   void initState() {
     super.initState();
-    startTimer();
+    _checkParticipationStatus();
+    _updateTimer();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTimer());
   }
 
-  void startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdownDuration.inSeconds == 0) {
-        timer.cancel();
-      } else {
-        setState(() {
-          _countdownDuration -= const Duration(seconds: 1);
-        });
-      }
-    });
+  // THIS IS THE NEW LOGIC TO CHECK IF THE USER HAS ALREADY PLAYED
+  Future<void> _checkParticipationStatus() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      setState(() => _isCheckingParticipation = false);
+      return;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('events').doc(widget.event.id)
+        .collection('participants').doc(userId).get();
+
+    if (mounted) {
+      setState(() {
+        _hasParticipated = doc.exists;
+        _isCheckingParticipation = false;
+      });
+    }
+  }
+
+  void _updateTimer() {
+    if (mounted) {
+      final startTime = (widget.event['startDate'] as Timestamp).toDate();
+      final difference = startTime.difference(DateTime.now());
+      setState(() {
+        _timeUntilStart = difference.isNegative ? Duration.zero : difference;
+      });
+    }
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Weekly Code Clash')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Obx(() {
-          switch (eventState.value) {
-            case EventState.countdown:
-              return _buildCountdownView();
-            case EventState.inProgress:
-              return _buildQnaView();
-            case EventState.finished:
-              return _buildLeaderboardView();
-          }
+    final startTime = (widget.event['startDate'] as Timestamp).toDate();
+    final duration = Duration(minutes: widget.event['durationInMinutes'] as int? ?? 0);
+    final endTime = startTime.add(duration);
+    final bool isEventOver = DateTime.now().isAfter(endTime);
+
+    final bool canJoin = _timeUntilStart > Duration.zero && _timeUntilStart <= const Duration(minutes: 5);
+    final bool isLive = DateTime.now().isAfter(startTime) && !isEventOver;
+
+    String countdownText;
+    if (isLive) {
+      countdownText = 'Event is live!';
+    } else if (_timeUntilStart > Duration.zero) {
+      countdownText = 'Starts in: ${_timeUntilStart.toString().split('.').first.padLeft(8, "0")}';
+    } else {
+      countdownText = 'Event has ended.';
+    }
+
+    // --- DYNAMIC ACTION BUTTON LOGIC ---
+    Widget actionButton;
+    if (_isCheckingParticipation) {
+      actionButton = const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+    } else if (_hasParticipated || isEventOver) {
+      // If user has participated OR the event is over, show "View Results"
+      actionButton = NeonButton(
+        onTap: () => Get.toNamed(Routes.EVENT_LEADERBOARD, arguments: {
+          'eventId': widget.event.id,
+          'eventTitle': widget.event['title'],
         }),
+        text: 'View Results',
+        gradientColors: const [AppTheme.secondaryColor, Colors.purpleAccent],
+      );
+    } else {
+      // Otherwise, show the Join/Not Started button
+      actionButton = NeonButton(
+        onTap: (canJoin || isLive) ? () => Get.toNamed(Routes.EVENT_ARENA, arguments: widget.event) : null,
+        text: (canJoin || isLive) ? 'Join Event' : 'Not Started Yet',
+        gradientColors: (canJoin || isLive) ? [Colors.green, Colors.teal] : [Colors.grey, Colors.blueGrey],
+      );
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.event['title'], style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            Text(widget.event['description']),
+            const SizedBox(height: 16),
+            Text(countdownText, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Center(child: actionButton),
+          ],
+        ),
       ),
     );
   }
-
-  /// The view shown before the event starts.
-  Widget _buildCountdownView() {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(_countdownDuration.inMinutes.remainder(60));
-    final seconds = twoDigits(_countdownDuration.inSeconds.remainder(60));
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'EVENT STARTS IN',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 20),
-        Text(
-          '$minutes:$seconds',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.displayMedium?.copyWith(
-            color: AppTheme.accentColor,
-            fontWeight: FontWeight.bold,
-            shadows: [
-              const Shadow(blurRadius: 20, color: AppTheme.accentColor),
-            ],
-          ),
-        ),
-        const SizedBox(height: 40),
-        NeonButton(
-          text: 'Join Event',
-          onTap: () => eventState.value = EventState.inProgress,
-          gradientColors: const [AppTheme.accentColor, AppTheme.tertiaryColor],
-        ),
-      ],
-    );
-  }
-
-  /// The view shown during the event.
-  Widget _buildQnaView() {
-    return Column(
-      children: [
-        CircularPercentIndicator(
-          radius: 80.0,
-          lineWidth: 12.0,
-          animation: true,
-          percent: 0.4, // Mock progress: 2 out of 5 questions
-          center: Text(
-            "2 / 5",
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          circularStrokeCap: CircularStrokeCap.round,
-          progressColor: AppTheme.secondaryColor,
-          backgroundColor: AppTheme.primaryColor.withOpacity(0.5),
-        ),
-        const SizedBox(height: 30),
-        const Text(
-          "Question 3: What is the output of `print(2 + '2')` in Python?",
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18),
-        ),
-        const SizedBox(height: 30),
-        // Add answer options here
-        const Spacer(),
-        NeonButton(
-          text: 'Finish',
-          onTap: () => eventState.value = EventState.finished,
-          gradientColors: const [Colors.red, Colors.orange],
-        ),
-      ],
-    );
-  }
-
-  /// The view shown after the event ends.
-  Widget _buildLeaderboardView() {
-    return Column(
-      children: [
-        Text("Event Finished!", style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 10),
-        const Text("Here are the results:"),
-        const SizedBox(height: 20),
-        const Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                LeaderboardCard(rank: 1, name: 'Player One', xp: 500, isTopThree: true),
-                LeaderboardCard(rank: 2, name: 'CodeNinja', xp: 450, isTopThree: true),
-                LeaderboardCard(rank: 3, name: 'DebugDiva', xp: 420, isTopThree: true),
-                LeaderboardCard(rank: 4, name: 'ScriptKid', xp: 300, isTopThree: true,),
-              ],
-            ),
-          ),
-        )
-      ],
-    );
-  }
 }
-
-

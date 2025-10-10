@@ -9,8 +9,10 @@ import '../modules/dashboard/dashboard_binding.dart';
 import '../modules/dashboard/dashboard_view.dart';
 import '../modules/event/event_binding.dart';
 import '../modules/event/event_view.dart';
+import '../modules/event/eventarenaview.dart';
 import '../modules/feed/feed_binding.dart';
 import '../modules/feed/feed_view.dart';
+import '../modules/leaderboard/event_leaderboard_view.dart';
 import '../modules/leaderboard/leaderboard_binding.dart';
 import '../modules/leaderboard/leaderboard_view.dart';
 import '../modules/notifications/notifications_binding.dart';
@@ -54,6 +56,11 @@ class AppPages {
       page: () => EventView(),
       binding: EventBinding(),
     ),
+    GetPage(
+      name: Routes.EVENT_ARENA,
+      page: () => const EventArenaView(),
+    ),
+    GetPage(name: Routes.EVENT_LEADERBOARD, page: () => const EventLeaderboardView()),
     GetPage(
       name: Routes.LEADERBOARD,
       page: () => LeaderboardView(),
