@@ -1,4 +1,4 @@
-// lib/modules/profile/profile_view.dart
+// lib/modules/public_profile/public_profile_view.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -6,37 +6,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
-import '../auth/auth_controller.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/animated_counter.dart';
-import 'profile_controller.dart';
+import 'public_profile_controller.dart';
 
-class ProfileView extends GetView<ProfileController> {
-  const ProfileView({super.key});
+class PublicProfileView extends GetView<PublicProfileController> {
+  const PublicProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() {
-          final bool isMyProfile = controller.userData.value?['uid'] == Get.find<AuthController>().auth.currentUser?.uid;
-          final String name = controller.userData.value?['name'] ?? 'Profile';
-          return Text(isMyProfile ? 'My Profile' : "$name's Profile");
-        }),
-        actions: [
-          Obx(() {
-            final bool isMyProfile = controller.userData.value?['uid'] == Get.find<AuthController>().auth.currentUser?.uid;
-            return isMyProfile
-                ? IconButton(
-              icon: const Icon(Icons.logout),
-              tooltip: 'Log Out',
-              onPressed: () {
-                Get.find<AuthController>().signOut();
-              },
-            )
-                : const SizedBox.shrink();
-          }),
-        ],
+        title: Obx(() => Text("${controller.userData.value?['name'] ?? 'User'}'s Profile")),
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -50,15 +31,14 @@ class ProfileView extends GetView<ProfileController> {
         }
 
         final user = controller.userData.value!;
-        final bool isMyProfile = user['uid'] == controller.currentUser?.uid;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              _buildProfileCard(context, user, isMyProfile),
+              _buildProfileCard(context, user),
               const SizedBox(height: 30),
-              _buildStatsGrid(user['xp'] ?? 0, user['points'] ?? 0, controller.completedChallenges.length),
+              _buildStatsGrid(user['xp'] ?? 0, user['points'] ?? 0),
               const SizedBox(height: 30),
               _buildLevelSection(user['xp'] ?? 0),
               const SizedBox(height: 30),
@@ -70,38 +50,7 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  void _showUpdateNameDialog(BuildContext context) {
-    final nameController = TextEditingController(text: controller.userData.value?['name'] ?? '');
-    Get.defaultDialog(
-      title: "Update Your Name",
-      titleStyle: const TextStyle(color: Colors.white),
-      backgroundColor: AppTheme.primaryColor.withOpacity(0.95),
-      content: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: TextFormField(
-          controller: nameController,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            labelText: "New Name",
-            labelStyle: const TextStyle(color: Colors.white70),
-            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade600)),
-            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: AppTheme.accentColor)),
-          ),
-        ),
-      ),
-      textConfirm: "Save",
-      textCancel: "Cancel",
-      confirmTextColor: Colors.white,
-      cancelTextColor: Colors.white70,
-      buttonColor: AppTheme.accentColor,
-      onConfirm: () {
-        controller.updateUserName(nameController.text.trim());
-      },
-    );
-  }
-
-  Widget _buildProfileCard(BuildContext context, Map<String, dynamic> user, bool isMyProfile) {
+  Widget _buildProfileCard(BuildContext context, Map<String, dynamic> user) {
     final String userName = user['name'] ?? 'Player';
     final Timestamp? joinedDateTimestamp = user['joinedDate'] as Timestamp?;
     final String joinedDate = joinedDateTimestamp != null
@@ -124,36 +73,24 @@ class ProfileView extends GetView<ProfileController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(userName, style: Theme.of(context).textTheme.headlineSmall, overflow: TextOverflow.ellipsis),
-                  ),
-                  if (isMyProfile)
-                    IconButton(
-                      icon: Icon(Icons.edit, color: AppTheme.accentColor, size: 20),
-                      onPressed: () => _showUpdateNameDialog(context),
-                    )
-                ],
-              ),
+              Text(userName, style: Theme.of(context).textTheme.headlineSmall, overflow: TextOverflow.ellipsis),
               const SizedBox(height: 5),
               Text('Joined: $joinedDate', style: const TextStyle(color: Colors.white70)),
             ],
           ),
         )
       ],
-    );
+    ).animate().fadeIn(duration: 500.ms).scale(begin: const Offset(0.8, 0.8));
   }
 
-  Widget _buildStatsGrid(int xp, int points, int challengesCompleted) {
+  Widget _buildStatsGrid(int xp, int points) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _buildStatItem('Total XP', xp),
-        _buildStatItem('Challenges', challengesCompleted),
         _buildStatItem('Points', points),
       ],
-    );
+    ).animate().fadeIn(delay: 200.ms);
   }
 
   Widget _buildStatItem(String label, int value) {
@@ -220,7 +157,7 @@ class ProfileView extends GetView<ProfileController> {
             },
           ),
       ],
-    );
+    ).animate().fadeIn(delay: 400.ms);
   }
 
   IconData _getIconForName(String iconName) {

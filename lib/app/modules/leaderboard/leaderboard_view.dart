@@ -1,7 +1,11 @@
+// lib/modules/leaderboard/leaderboard_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-
+import 'package:get/get.dart';
+import '../../routes/app_pages.dart';
 import '../../widgets/leaderboard_card.dart';
+import 'leaderboard_controller.dart';
 
 class LeaderboardView extends StatelessWidget {
   const LeaderboardView({super.key});
@@ -16,14 +20,19 @@ class LeaderboardView extends StatelessWidget {
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Global Ranks'),
-              Tab(text: 'Event Ranks'),
+              Tab(text: 'Event Ranks (TBA)'),
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
             LeaderboardList(isEvent: false),
-            LeaderboardList(isEvent: true),
+            const Center(
+              child: Text(
+                'Event-specific leaderboards are coming soon!',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ),
           ],
         ),
       ),
@@ -31,36 +40,70 @@ class LeaderboardView extends StatelessWidget {
   }
 }
 
-class LeaderboardList extends StatelessWidget {
+class LeaderboardList extends GetView<LeaderboardController> {
   final bool isEvent;
   const LeaderboardList({super.key, required this.isEvent});
 
   @override
   Widget build(BuildContext context) {
-    final data = isEvent
-        ? [
-      {'rank': 1, 'name': 'EventWinner', 'xp': 1200},
-      {'rank': 2, 'name': 'QuickCoder', 'xp': 1100},
-      {'rank': 3, 'name': 'Player One', 'xp': 950},
-    ]
-        : [
-      {'rank': 1, 'name': 'GlobalKing', 'xp': 15000},
-      {'rank': 2, 'name': 'CodeGod', 'xp': 14500},
-      {'rank': 3, 'name': 'AlgoQueen', 'xp': 14200},
-      {'rank': 4, 'name': 'Player One', 'xp': 12000},
-      {'rank': 5, 'name': 'ByteMaster', 'xp': 11500},
-    ];
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: controller.getLeaderboardStream(),
+      builder: (context, snapshot) {
+        // --- THIS IS THE FIX ---
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: data.length,
-      itemBuilder: (context, index) {
-        final user = data[index];
-        return LeaderboardCard(
-          rank: user['rank'] as int,
-          name: user['name'] as String,
-          xp: user['xp'] as int, isTopThree:true,
-        ).animate().fadeIn(delay: (100 * index).ms).slideX();
+        // 1. Handle the loading state FIRST.
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // 2. Handle any potential errors with the stream.
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        // 3. Handle the case where the stream is empty or has no data.
+        //    This check prevents the null error.
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+            child: Text(
+              'No users found in the leaderboard yet.',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
+
+        // 4. ONLY if all checks pass, we can safely use the data.
+        final rankedUsers = snapshot.data!;
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: rankedUsers.length,
+          itemBuilder: (context, index) {
+            final user = rankedUsers[index];
+            final rank = index + 1;
+
+            return LeaderboardCard(
+              rank: rank,
+              name: user['name'] as String,
+              xp: user['xp'] as int,
+              isTopThree: rank <= 3,
+              onTap: () {
+                final String clickedUserId = user['uid'];
+                if (clickedUserId == controller.currentUserId) {
+                  Get.toNamed(Routes.PROFILE);
+                } else {
+                  Get.toNamed(
+                    Routes.PUBLIC_PROFILE,
+                    arguments: {
+                      'uid': user['uid'],
+                      'name': user['name'],
+                    },
+                  );
+                }
+              },
+            ).animate().fadeIn(delay: (100 * index).ms).slideX();
+          },
+        );
       },
     );
   }
