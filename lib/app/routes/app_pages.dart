@@ -1,6 +1,5 @@
-// lib/routes/app_pages.dart
-
 import 'package:get/get.dart';
+
 import '../modules/auth/auth_binding.dart';
 import '../modules/auth/auth_view.dart';
 import '../modules/challenges/challenge_detail_view.dart';
@@ -10,8 +9,10 @@ import '../modules/dashboard/dashboard_binding.dart';
 import '../modules/dashboard/dashboard_view.dart';
 import '../modules/event/event_binding.dart';
 import '../modules/event/event_view.dart';
+import '../modules/event/eventarenaview.dart';
 import '../modules/feed/feed_binding.dart';
 import '../modules/feed/feed_view.dart';
+import '../modules/leaderboard/event_leaderboard_view.dart';
 import '../modules/leaderboard/leaderboard_binding.dart';
 import '../modules/leaderboard/leaderboard_view.dart';
 import '../modules/notifications/notifications_binding.dart';
@@ -21,8 +22,8 @@ import '../modules/practice/practice_problems_view.dart';
 import '../modules/practice/practice_view.dart';
 import '../modules/profile/profile_binding.dart';
 import '../modules/profile/profile_view.dart';
-import '../modules/public_profile/public_profile_binding.dart'; // <-- IMPORTED BINDING
-import '../modules/public_profile/public_profile_view.dart';   // <-- IMPORTED VIEW
+import '../modules/public_profile/public_profile_binding.dart';
+import '../modules/public_profile/public_profile_view.dart';
 
 part 'app_routes.dart';
 
@@ -58,6 +59,11 @@ class AppPages {
       binding: EventBinding(),
     ),
     GetPage(
+      name: Routes.EVENT_ARENA,
+      page: () => const EventArenaView(),
+    ),
+    GetPage(name: Routes.EVENT_LEADERBOARD, page: () => EventLeaderboardView()),
+    GetPage(
       name: Routes.LEADERBOARD,
       page: () => LeaderboardView(),
       binding: LeaderboardBinding(),
@@ -67,7 +73,6 @@ class AppPages {
       page: () => ProfileView(),
       binding: ProfileBinding(),
     ),
-    // THIS IS THE NEW ROUTE FOR PUBLIC PROFILES
     GetPage(
       name: Routes.PUBLIC_PROFILE,
       page: () => PublicProfileView(),
@@ -92,6 +97,8 @@ class AppPages {
     GetPage(
       name: Routes.PRACTICE_PROBLEMS,
       page: () => PracticeProblemsView(),
+      // No binding needed for this simple view yet
     ),
   ];
 }
+
