@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import 'dart:async';
 import '../../routes/app_pages.dart';
 import '../../theme/app_theme.dart';
@@ -56,11 +57,10 @@ class _EventCardState extends State<EventCard> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTimer());
   }
 
-  // THIS IS THE NEW LOGIC TO CHECK IF THE USER HAS ALREADY PLAYED
   Future<void> _checkParticipationStatus() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      setState(() => _isCheckingParticipation = false);
+      if (mounted) setState(() => _isCheckingParticipation = false);
       return;
     }
 
@@ -94,8 +94,9 @@ class _EventCardState extends State<EventCard> {
 
   @override
   Widget build(BuildContext context) {
-    final startTime = (widget.event['startDate'] as Timestamp).toDate();
-    final duration = Duration(minutes: widget.event['durationInMinutes'] as int? ?? 0);
+    final data = widget.event.data() as Map<String, dynamic>;
+    final startTime = (data['startDate'] as Timestamp).toDate();
+    final duration = Duration(minutes: data['durationInMinutes'] as int? ?? 0);
     final endTime = startTime.add(duration);
     final bool isEventOver = DateTime.now().isAfter(endTime);
 
@@ -111,26 +112,23 @@ class _EventCardState extends State<EventCard> {
       countdownText = 'Event has ended.';
     }
 
-    // --- DYNAMIC ACTION BUTTON LOGIC ---
     Widget actionButton;
     if (_isCheckingParticipation) {
       actionButton = const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
     } else if (_hasParticipated || isEventOver) {
-      // If user has participated OR the event is over, show "View Results"
       actionButton = NeonButton(
         onTap: () => Get.toNamed(Routes.EVENT_LEADERBOARD, arguments: {
           'eventId': widget.event.id,
-          'eventTitle': widget.event['title'],
+          'eventTitle': data['title'],
         }),
         text: 'View Results',
         gradientColors: const [AppTheme.secondaryColor, Colors.purpleAccent],
       );
     } else {
-      // Otherwise, show the Join/Not Started button
       actionButton = NeonButton(
         onTap: (canJoin || isLive) ? () => Get.toNamed(Routes.EVENT_ARENA, arguments: widget.event) : null,
         text: (canJoin || isLive) ? 'Join Event' : 'Not Started Yet',
-        gradientColors: (canJoin || isLive) ? [Colors.green, Colors.teal] : [Colors.grey, Colors.blueGrey],
+        gradientColors: const [Colors.green, Colors.teal],
       );
     }
 
@@ -141,9 +139,9 @@ class _EventCardState extends State<EventCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.event['title'], style: Theme.of(context).textTheme.headlineSmall),
+            Text(data['title'], style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            Text(widget.event['description']),
+            Text(data['description']),
             const SizedBox(height: 16),
             Text(countdownText, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
