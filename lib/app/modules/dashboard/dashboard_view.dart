@@ -8,14 +8,15 @@ import '../../routes/app_pages.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/animated_glow_card.dart';
 import '../profile/profile_controller.dart';
+import 'dashboard_controller.dart';
 
-class DashboardView extends StatelessWidget {
+class DashboardView extends GetView<DashboardController> {
   const DashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // This ensures the profile data is ready for the header
-    Get.lazyPut(()=>ProfileController(),fenix: true);
+    // This ensures the profile data is ready for the header by creating its controller
+    Get.lazyPut(() => ProfileController(), fenix: true);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,7 +26,6 @@ class DashboardView extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.notifications_active_outlined),
             tooltip: 'Notifications',
-            // NAVIGATION ADDED HERE
             onPressed: () => Get.toNamed(Routes.NOTIFICATIONS),
           ),
         ],
@@ -47,17 +47,17 @@ class DashboardView extends StatelessWidget {
   }
 
   Widget _buildProfileHeader(BuildContext context) {
-    final ProfileController controller = Get.find<ProfileController>();
+    final ProfileController profileController = Get.find<ProfileController>();
 
     return Obx(() {
-      if (controller.isLoading.value) {
+      if (profileController.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
-      if (controller.userData.value == null) {
+      if (profileController.userData.value == null) {
         return const Center(child: Text('Could not load profile header.'));
       }
 
-      final user = controller.userData.value!;
+      final user = profileController.userData.value!;
       final totalXp = user['xp'] ?? 0;
 
       return GestureDetector(
@@ -91,7 +91,7 @@ class DashboardView extends StatelessWidget {
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 5),
-                        Text('Level ${controller.currentLevel.value}',
+                        Text('Level ${profileController.currentLevel.value}',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -104,13 +104,13 @@ class DashboardView extends StatelessWidget {
               const SizedBox(height: 20),
               LinearPercentIndicator(
                 lineHeight: 12.0,
-                percent: controller.levelProgress.value,
+                percent: profileController.levelProgress.value,
                 animation: true,
                 barRadius: const Radius.circular(10),
                 progressColor: AppTheme.secondaryColor,
                 backgroundColor: AppTheme.primaryColor.withOpacity(0.5),
                 center: Text(
-                  "XP: $totalXp / ${controller.nextLevelXp.value}",
+                  "XP: $totalXp / ${profileController.nextLevelXp.value}",
                   style: const TextStyle(fontSize: 10.0, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -126,35 +126,30 @@ class DashboardView extends StatelessWidget {
       AnimatedGlowCard(
         title: 'Challenges',
         icon: Icons.gamepad_outlined,
-        // NAVIGATION ADDED HERE
         onTap: () => Get.toNamed(Routes.CHALLENGES),
         gradientColors: const [AppTheme.accentColor, AppTheme.tertiaryColor],
       ),
       AnimatedGlowCard(
         title: 'Live Events',
         icon: Icons.online_prediction,
-        // NAVIGATION ADDED HERE
         onTap: () => Get.toNamed(Routes.EVENT),
         gradientColors: const [AppTheme.secondaryColor, Colors.pinkAccent],
       ),
       AnimatedGlowCard(
         title: 'Leaderboard',
         icon: Icons.leaderboard_outlined,
-        // NAVIGATION ADDED HERE
         onTap: () => Get.toNamed(Routes.LEADERBOARD),
         gradientColors: const [AppTheme.tertiaryColor, Colors.orangeAccent],
       ),
       AnimatedGlowCard(
         title: 'Practice Arena',
         icon: Icons.fitness_center,
-        // NAVIGATION ADDED HERE
         onTap: () => Get.toNamed(Routes.PRACTICE),
         gradientColors: const [Colors.lightGreen, AppTheme.accentColor],
       ),
       AnimatedGlowCard(
         title: 'Code Feed',
         icon: Icons.article_outlined,
-        // NAVIGATION ADDED HERE
         onTap: () => Get.toNamed(Routes.FEED),
         gradientColors: const [Colors.cyan, AppTheme.tertiaryColor],
       ),

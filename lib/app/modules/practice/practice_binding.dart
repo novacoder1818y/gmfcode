@@ -1,12 +1,11 @@
-import 'package:get/get.dart';
+// lib/modules/practice/practice_binding.dart
 
-// This binding is for the PracticeView.
-// The view currently displays a static grid of languages.
-// If you needed to load language categories or user progress from a database,
-// you would create a PracticeController and register it in this file.
+import 'package:get/get.dart';
+import 'practice_controller.dart';
+
 class PracticeBinding extends Bindings {
   @override
   void dependencies() {
-    // Example: Get.lazyPut<PracticeController>(() => PracticeController());
+    Get.lazyPut<PracticeController>(() => PracticeController());
   }
 }
