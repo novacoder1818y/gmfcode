@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../widgets/xp_animation_widget.dart'; // Make sure this widget exists
+import '../../theme/app_theme.dart';
+import '../../widgets/neon_button.dart';
+import '../../widgets/xp_animation_widget.dart';
 
 class EventArenaView extends StatefulWidget {
   const EventArenaView({super.key});
@@ -31,8 +33,9 @@ class _EventArenaViewState extends State<EventArenaView> {
 
   void _loadQuestions() {
     if (event.data() != null && (event.data() as Map).containsKey('questions')) {
+      final List<dynamic> questionsData = event['questions'];
       setState(() {
-        _questions = List<Map<String, dynamic>>.from(event['questions']);
+        _questions = List<Map<String, dynamic>>.from(questionsData);
         _isLoading = false;
       });
     } else {
@@ -57,13 +60,25 @@ class _EventArenaViewState extends State<EventArenaView> {
 
     final question = _questions[_currentQuestionIndex];
     if (selectedAnswer == question['correctAnswer']) {
+      // Correct Answer: Calculate and add points
       final int pointsPerQuestion = ((event['totalXp'] as int? ?? 100) / _questions.length).round();
       _score += pointsPerQuestion;
+    } else {
+      // THIS IS THE FIX: Show a snackbar for incorrect answers
+      Get.snackbar(
+        'Incorrect!',
+        'That was not the right answer.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 1),
+      );
     }
 
     if (_currentQuestionIndex == _questions.length - 1) {
       _timer.cancel();
-      _submitFinalScore();
+      // Add a small delay before submitting to allow the user to see the last result
+      Future.delayed(const Duration(milliseconds: 500), _submitFinalScore);
     } else {
       setState(() => _currentQuestionIndex++);
     }
@@ -73,14 +88,14 @@ class _EventArenaViewState extends State<EventArenaView> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
 
-    // Show XP animation before starting the database transaction
+    // Trigger the XP animation to show the total score
     setState(() => _showXpAnimation = true);
 
     final int totalDuration = (event['durationInMinutes'] as int? ?? 5) * 60;
     final int timeTaken = totalDuration - _eventTimeLeft;
     final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
-    // THIS IS THE FIX: Reads must happen before writes in a transaction.
+    // Use a transaction to safely award XP and record participation
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       // 1. READ FIRST: Get the current user's data.
       final userDoc = await transaction.get(userRef);
@@ -89,19 +104,18 @@ class _EventArenaViewState extends State<EventArenaView> {
       }
 
       // 2. PREPARE WRITES
-      // a) Prepare to write the participant score
+      // a) Prepare to write the participant score for the event leaderboard
       final participantRef = FirebaseFirestore.instance.collection('events').doc(event.id).collection('participants').doc(userId);
       transaction.set(participantRef, {
         'name': userDoc.data()?['name'] ?? 'Anonymous',
-        'score': _score,
+        'score': _score, // The final calculated score
         'completionTimeSeconds': timeTaken,
         'submittedAt': Timestamp.now(),
       });
 
-      // b) Prepare to update the user's total XP
+      // b) Prepare to update the user's total XP on their main profile
       final currentXp = userDoc.data()?['xp'] ?? 0;
-      final eventXp = event['totalXp'] as int? ?? 0;
-      transaction.update(userRef, {'xp': currentXp + eventXp});
+      transaction.update(userRef, {'xp': currentXp + _score});
     });
   }
 
@@ -146,11 +160,11 @@ class _EventArenaViewState extends State<EventArenaView> {
           ),
           if (_showXpAnimation)
             XpAnimationWidget(
-              points: event['totalXp'],
+              points: _score, // Show the final score earned
               onComplete: () {
                 if (mounted) {
                   Get.back();
-                  Get.snackbar('Event Over!', 'Your final score is $_score. You earned ${event['totalXp']} XP!');
+                  Get.snackbar('Event Over!', 'Your final score is $_score. You earned $_score XP!');
                 }
               },
             ),

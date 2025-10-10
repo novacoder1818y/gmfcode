@@ -57,6 +57,7 @@ class _EventCardState extends State<EventCard> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _updateTimer());
   }
 
+  // THIS IS THE NEW LOGIC TO CHECK IF THE USER HAS ALREADY PLAYED
   Future<void> _checkParticipationStatus() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
@@ -112,10 +113,12 @@ class _EventCardState extends State<EventCard> {
       countdownText = 'Event has ended.';
     }
 
+    // --- DYNAMIC ACTION BUTTON LOGIC ---
     Widget actionButton;
     if (_isCheckingParticipation) {
       actionButton = const SizedBox(height: 40, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
     } else if (_hasParticipated || isEventOver) {
+      // If user has participated OR the event is over, show "View Results"
       actionButton = NeonButton(
         onTap: () => Get.toNamed(Routes.EVENT_LEADERBOARD, arguments: {
           'eventId': widget.event.id,
@@ -125,6 +128,7 @@ class _EventCardState extends State<EventCard> {
         gradientColors: const [AppTheme.secondaryColor, Colors.purpleAccent],
       );
     } else {
+      // Otherwise, show the Join/Not Started button
       actionButton = NeonButton(
         onTap: (canJoin || isLive) ? () => Get.toNamed(Routes.EVENT_ARENA, arguments: widget.event) : null,
         text: (canJoin || isLive) ? 'Join Event' : 'Not Started Yet',
