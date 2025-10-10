@@ -11,6 +11,7 @@ import '../modules/event/event_binding.dart';
 import '../modules/event/event_view.dart';
 import '../modules/event/eventarenaview.dart';
 import '../modules/feed/feed_binding.dart';
+import '../modules/feed/feed_details_view.dart';
 import '../modules/feed/feed_view.dart';
 import '../modules/leaderboard/event_leaderboard_view.dart';
 import '../modules/leaderboard/leaderboard_binding.dart';
@@ -89,6 +90,11 @@ class AppPages {
       page: () => FeedView(),
       binding: FeedBinding(),
     ),
+    GetPage(
+      name: Routes.FEED_DETAIL,
+      page: () => const FeedDetailView(),
+    ),
+
     GetPage(
       name: Routes.PRACTICE,
       page: () => PracticeView(),

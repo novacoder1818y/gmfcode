@@ -13,6 +13,7 @@ abstract class Routes {
   static const PUBLIC_PROFILE = '/public-profile'; // <-- ADDED THIS
   static const NOTIFICATIONS = '/notifications'; // New
   static const FEED = '/feed'; // New
+  static const FEED_DETAIL = '/feed/detail';
   static const PRACTICE = '/practice';
   static const PRACTICE_PROBLEMS = '/practice/problems';// New
 }

@@ -64,6 +64,23 @@ class AuthController extends GetxController {
       isLoading.value = false;
     }
   }
+  Future<void> sendPasswordResetEmail(String email) async {
+    if (email.isEmpty) {
+      Get.snackbar('Error', 'Please enter your email address.', backgroundColor: Colors.red, colorText: Colors.white);
+      return;
+    }
+    isLoading.value = true;
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+      Get.back(); // Close the dialog
+      Get.snackbar('Success', 'A password reset link has been sent to your email.', backgroundColor: Colors.green, colorText: Colors.white);
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar('Error', e.message ?? 'An unknown error occurred.', backgroundColor: Colors.red, colorText: Colors.white);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
 
   Future<void> signInWithEmail() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
