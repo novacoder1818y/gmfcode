@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:gmfcode/app/modules/feed/feed_post_model.dart';
+import 'feed_post_model.dart'; // Corrected import path
 
 class FeedController extends GetxController {
   var feedPosts = <FeedPostModel>[].obs;
@@ -16,6 +16,11 @@ class FeedController extends GetxController {
           .snapshots()
           .map((snapshot) => snapshot.docs.map((doc) => FeedPostModel.fromFirestore(doc)).toList()),
     );
-    isLoading.value = false;
+    // Use a listener to know when the data has been loaded for the first time
+    feedPosts.listen((_) {
+      if (isLoading.value) {
+        isLoading.value = false;
+      }
+    });
   }
 }

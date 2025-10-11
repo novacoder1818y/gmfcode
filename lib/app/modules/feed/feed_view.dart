@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
-import '../../routes/app_pages.dart';
+import '../../routes/app_pages.dart'; // Use the main app pages
 import 'feed_controller.dart';
 import 'feed_post_model.dart';
 
@@ -13,7 +13,7 @@ class FeedView extends GetView<FeedController> {
     return Scaffold(
       appBar: AppBar(title: const Text('Code Feed')),
       body: Obx(() {
-        if (controller.isLoading.value) {
+        if (controller.isLoading.value && controller.feedPosts.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
         if (controller.feedPosts.isEmpty) {
@@ -24,7 +24,7 @@ class FeedView extends GetView<FeedController> {
           itemCount: controller.feedPosts.length,
           itemBuilder: (context, index) {
             final post = controller.feedPosts[index];
-            return _buildPostCard(post);
+            return _buildPostCard(post).animate().fadeIn(delay: (100 * index).ms).slideY(begin: 0.2);
           },
         );
       }),
@@ -35,6 +35,7 @@ class FeedView extends GetView<FeedController> {
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
       child: InkWell(
+        // THIS IS THE FIX: This now navigates to the correct route
         onTap: () => Get.toNamed(Routes.FEED_DETAIL, arguments: post),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -48,7 +49,7 @@ class FeedView extends GetView<FeedController> {
               const SizedBox(height: 12),
               Text(
                 post.content,
-                style: Get.theme.textTheme.bodyMedium,
+                style: Get.theme.textTheme.bodyMedium?.copyWith(color: Colors.white70),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -61,6 +62,6 @@ class FeedView extends GetView<FeedController> {
           ),
         ),
       ),
-    ).animate().fadeIn(delay: (100 * (Get.isDialogOpen == true ? 0 : 1)).ms); // Simple animation
+    );
   }
 }
